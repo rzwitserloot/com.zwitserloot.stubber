@@ -1,0 +1,44 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.zwitserloot</groupId>
+	<artifactId>stubber</artifactId>
+	<packaging>jar</packaging>
+	<version>@VERSION@</version>
+	<name>com.zwitserloot.stubber</name>
+	<url>http://projectlombok.org/</url>
+	<description>Strips out all code and all signatures that aren't public from any given jar; this creatures a much smaller file that can be compiled against.</description>
+	<dependencies></dependencies>
+	<licenses>
+		<license>
+			<name>The MIT License</name>
+			<url>http://projectlombok.org/LICENSE</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+	<issueManagement>
+		<system>Google Code</system>
+		<url>http://code.google.com/p/projectlombok/issues</url>
+	</issueManagement>
+	<developers>
+		<developer>
+			<id>rzwitserloot</id>
+			<name>Reinier Zwitserloot</name>
+			<email>reinier@projectlombok.org</email>
+			<url>http://zwitserloot.com</url>
+			<timezone>+1</timezone>
+		</developer>
+		<developer>
+			<id>rspilker</id>
+			<name>Roel Spilker</name>
+			<email>roel@projectlombok.org</email>
+			<timezone>+1</timezone>
+		</developer>
+		<developer>
+			<id>rgrootjans</id>
+			<name>Robbert Jan Grootjans</name>
+			<timezone>+1</timezone>
+		</developer>
+	</developers>
+</project>
+

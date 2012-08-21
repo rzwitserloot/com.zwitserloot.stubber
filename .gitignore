@@ -1,0 +1,10 @@
+/bin
+/build
+/dist
+/ivyCache
+/lib
+*.class
+/.classpath
+/.project
+/.settings
+/doc/api

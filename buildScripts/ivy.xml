@@ -1,0 +1,18 @@
+<ivy-module version="2.0">
+	<info organisation="com.zwitserloot" module="stubber" />
+	<configurations>
+		<conf name="build" />
+		<conf name="runtime" />
+		<conf name="test" />
+		<conf name="contrib" />
+	</configurations>
+	<dependencies>
+		<dependency org="junit" name="junit" rev="4.8.2" conf="test->default" />
+		<dependency org="com.google.guava" name="guava" rev="13.0" conf="runtime, build->default; contrib->sources" />
+		<dependency org="org.projectlombok" name="lombok" rev="0.11.4" conf="build->default" />
+		<dependency org="zwitserloot.com" name="cmdreader" rev="1.2" conf="build->runtime; runtime" />
+		<dependency org="com.googlecode.jarjar" name="jarjar" rev="1.1" conf="build->default" />
+		<dependency org="org.ow2.asm" name="asm" rev="4.0" conf="runtime->default; build->default; contrib->sources" />
+		<dependency org="org.ow2.asm" name="asm-commons" rev="4.0" conf="runtime->default; build->default; contrib->sources" />
+	</dependencies>
+</ivy-module>

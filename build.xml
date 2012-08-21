@@ -1,0 +1,239 @@
+<!--
+  Copyright © 2012 The Project Lombok Authors.
+  
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+  
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+  
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+-->
+<project name="com.zwitserloot.stubber" default="dist" xmlns:ivy="antlib:com.zwitserloot.ivyplusplus">
+	<property name="build.compiler" value="javac1.6" />
+	<property name="ivy.retrieve.pattern" value="lib/[conf]/[artifact].[ext]" />
+	<property name="ivyplusplus.location" value="http://projectlombok.org/downloads/ivyplusplus.jar" />
+	<available file="lib/ivyplusplus.jar" property="ivyplusplus.available" />
+	
+	<path id="build.path">
+		<fileset dir="lib/build">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+	
+	<path id="runtime.path">
+		<fileset dir="lib/runtime">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+	
+	<path id="test.path">
+		<fileset dir="lib/test">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+	
+	<target name="download-ipp" unless="ivyplusplus.available">
+		<mkdir dir="lib" />
+		<get src="${ivyplusplus.location}" dest="lib/ivyplusplus.jar" usetimestamp="true" />
+	</target>
+	
+	<target name="load-ipp" depends="download-ipp">
+		<taskdef classpath="lib/ivyplusplus.jar" resource="com/zwitserloot/ivyplusplus/antlib.xml" uri="antlib:com.zwitserloot.ivyplusplus" />
+		<ivy:ensureippversion version="1.10" property="ipp.versionOkay" />
+	</target>
+	
+	<target name="checkver-ipp" depends="load-ipp" unless="ipp.versionOkay">
+		<get src="${ivyplusplus.location}" dest="lib/ivyplusplus.jar" />
+		<fail>ivyplusplus has been updated to a new version. Restart the script to continue.</fail>
+	</target>
+	
+	<target name="ensure-ipp" depends="load-ipp, checkver-ipp" />
+	
+	<target name="config-ivy" depends="ensure-ipp" unless="ivy.config">
+		<ivy:configure file="buildScripts/ivysettings.xml" />
+		<property name="ivy.config" value="true" />
+	</target>
+	
+	<target name="version" depends="ensure-ipp" description="Shows the version number." unless="app.version">
+		<ivy:compile includeDestClasses="false" srcdir="src/main" destdir="build/main" includes="com/zwitserloot/stubber/Version.java" />
+		<java
+			classname="com.zwitserloot.stubber.Version"
+			classpath="build/main"
+			failonerror="true"
+			output="build/version.txt" />
+		<ivy:loadversion property="app.version" file="build/version.txt" />
+		<echo level="info">com.zwitserloot.stubber version: ${app.version}</echo>
+	</target>
+	
+	<target name="deps" depends="ensureBuildDeps, ensureRuntimeDeps, ensureTestDeps" description="Downloads all dependencies." />
+	
+	<target name="ensureBuildDeps" depends="config-ivy">
+		<mkdir dir="lib/build" />
+		<ivy:resolve file="buildScripts/ivy.xml" refresh="true" conf="build" />
+		<ivy:retrieve />
+	</target>
+	
+	<target name="ensureRuntimeDeps" depends="config-ivy">
+		<mkdir dir="lib/runtime" />
+		<ivy:resolve file="buildScripts/ivy.xml" refresh="true" conf="runtime" />
+		<ivy:retrieve />
+	</target>
+	
+	<target name="ensureTestDeps" depends="config-ivy">
+		<mkdir dir="lib/test" />
+		<ivy:resolve file="buildScripts/ivy.xml" refresh="true" conf="test" />
+		<ivy:retrieve />
+	</target>
+	
+	<target name="clean" description="Deletes build artifacts.">
+		<delete quiet="true" dir="dist" />
+		<delete quiet="true" dir="build" />
+		<delete quiet="true" dir="doc/api" />
+	</target>
+	
+	<target name="distclean" depends="clean" description="Deletes everything this build script has ever generated.">
+		<delete dir="lib" quiet="true" />
+		<delete dir="dist" quiet="true" />
+		<delete file=".project" quiet="true" />
+		<delete file=".classpath" quiet="true" />
+		<delete dir=".settings" quiet="true" />
+		<delete dir=".idea" quiet="true" />
+		<delete file="com.zwitserloot.stubber.iml" quiet="true" />
+	</target>
+	
+	<target name="compile" depends="ensureBuildDeps" description="Compiles program code.">
+		<ivy:compile destdir="build/main">
+			<src path="src/main" />
+			<classpath refid="build.path" />
+		</ivy:compile>
+	</target>
+	
+	<target name="compileTests" depends="compile, ensureTestDeps" description="Compiles test code.">
+		<ivy:compile destdir="build/tests">
+			<src path="src/test" />
+			<classpath refid="test.path" />
+			<classpath refid="build.path" />
+			<classpath>
+				<pathelement path="build/main" />
+			</classpath>
+		</ivy:compile>
+	</target>
+	
+	<target name="-unpackLibs" depends="ensureRuntimeDeps">
+		<ivy:cachedunjar dest="build/deps" marker="build/unpackDeps.marker">
+			<path refid="runtime.path" />
+		</ivy:cachedunjar>
+	</target>
+	
+	<target name="dist" depends="version, -unpackLibs, compile, -test.quiet, -test" description="Creates the distributable.">
+		<mkdir dir="dist" />
+		<taskdef name="jarjar" classname="com.tonicsystems.jarjar.JarJarTask" classpath="lib/build/jarjar.jar" />
+		<jarjar destfile="dist/stubber-${app.version}.jar">
+			<fileset dir="." includes="LICENSE" />
+			<fileset dir="." includes="AUTHORS" />
+			<fileset dir="." includes="README*" />
+			<fileset dir="build/main" />
+			<fileset dir="build/deps" />
+			<rule pattern="com.zwitserloot.cmdreader.**" result="stubber.libs.com.zwitserloot.cmdreader.@1" />
+			<rule pattern="org.objectweb.asm.**" result="stubber.libs.org.objectweb.asm.@1" />
+			<manifest>
+				<attribute name="Main-Class" value="com.zwitserloot.stubber.Main" />
+			</manifest>
+		</jarjar>
+		<copy file="dist/stubber-${app.version}.jar" tofile="dist/stubber.jar" />
+		<jar destfile="dist/stubber-${app.version}-sources.jar">
+			<fileset dir=".">
+				<include name="LICENSE" />
+				<include name="README*" />
+				<include name="src/**" />
+				<include name="build.xml" />
+				<include name="buildScripts/**" />
+			</fileset>
+		</jar>
+		<copy file="dist/stubber-${app.version}-sources.jar" tofile="dist/stubber-sources.jar" />
+	</target>
+	
+	<target name="-test.quiet">
+		<property name="tests.quiet" value="true" />
+	</target>
+	
+	<target name="-test" depends="compileTests" unless="skipTests">
+		<junit haltonfailure="yes" fork="on">
+			<formatter type="plain" usefile="false" unless="tests.quiet" />
+			<classpath refid="test.path" />
+			<classpath refid="runtime.path" />
+			<classpath>
+				<pathelement path="build/main" />
+				<pathelement path="build/tests" />
+			</classpath>
+			<batchtest>
+				<fileset dir="src/test">
+					<include name="**/Test*.java" />
+				</fileset>
+			</batchtest>
+		</junit>
+		<echo level="info">All tests successful.</echo>
+	</target>
+	
+	<target name="test" depends="-test" description="Runs the unit tests." />
+	
+	<target name="contrib" depends="config-ivy" description="Downloads various non-crucial documentation, sources, etc that are useful when developing this project.">
+		<ivy:resolve file="buildScripts/ivy.xml" refresh="true" conf="contrib" />
+		<ivy:retrieve />
+	</target>
+	
+	<target name="intellij" depends="deps, contrib" description="Creates intellij project files and downloads all dependencies. Open this directory as a project in IntelliJ after running this target.">
+		<ivy:intellijgen source="1.6">
+			<conf name="build" sources="contrib" />
+			<conf name="test" sources="contrib" />
+			<module name="com.zwitserloot.stubber" depends="build, test">
+				<srcdir dir="src/main" />
+				<srcdir dir="src/test" test="true" />
+			</module>
+			<settings>
+				<url url="http://projectlombok.org/downloads/lombok.intellij.settings" />
+			</settings>
+		</ivy:intellijgen>
+	</target>
+	
+	<target name="eclipse" depends="deps, contrib" description="Creates eclipse project files and downloads all dependencies. Open this directory as project in eclipse after running this target.">
+		<ivy:eclipsegen source="1.6">
+			<srcdir dir="src/main" />
+			<srcdir dir="src/test" />
+			<conf name="build" sources="contrib" />
+			<conf name="test" sources="contrib" />
+			<settings>
+				<url url="http://projectlombok.org/downloads/lombok.eclipse.settings" />
+			</settings>
+		</ivy:eclipsegen>
+	</target>
+	
+	<target name="maven-build" depends="dist, test" description="Creates an artifact bundle for upload to sonatype forge.">
+		<input message="Enter the passphrase for the maven signing key:" addproperty="maven.signing.passphrase">
+			<handler type="secure" />
+		</input>
+		
+		<ivy:create-artifact-bundle
+				version="${app.version}"
+				artifactId="stubber"
+				passphrase="${maven.signing.passphrase}"
+				bin="dist/stubber-${app.version}.jar"
+				src="dist/stubber-${app.version}-sources.jar"
+				javadoc="dist/stubber-${app.version}-javadoc.jar"
+				key="mavenrepo-signing-key-secret.bpr"
+				pom="doc/maven-pom.xml"
+				out="dist/stubber-${app.version}-artifact-bundle.jar"
+		/>
+	</target>
+</project>
