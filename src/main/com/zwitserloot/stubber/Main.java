@@ -52,7 +52,7 @@ public class Main {
 		List<String> types = new ArrayList<String>();
 		
 		@Shorthand("c")
-		@Description("Add to the classpath without scouring them for public classes to use as API roots. Use '/a/b/c/*' to grab all jar files in /a/b/c.")
+		@Description("Add to the classpath without scouring them for public classes to use as API roots. Use '/a/b/c/_' to grab all jar files in /a/b/c.")
 		List<String> classpath = new ArrayList<String>();
 		
 		@Shorthand("i")
@@ -60,7 +60,7 @@ public class Main {
 		List<String> ignore = new ArrayList<String>();
 		
 		@Sequential
-		@Description("Include all public and protected class files in the provided directory or jar file as root points. Use '/a/b/c/*' to grab all jar files in /a/b/c.")
+		@Description("Include all public and protected class files in the provided directory or jar file as root points. Use '/a/b/c/_' to grab all jar files in /a/b/c.")
 		@FullName("root")
 		List<String> roots = new ArrayList<String>();
 		
@@ -187,7 +187,7 @@ public class Main {
 	
 	private static List<String> asClasspathEntry(String rt) {
 		val out = new ArrayList<String>();
-		if (rt.endsWith("*")) {
+		if (rt.endsWith("_") || rt.endsWith("*")) {
 			File file = new File(rt.substring(0, rt.length() - 1));
 			if (file.isDirectory()) {
 				for (File f : file.listFiles()) {
