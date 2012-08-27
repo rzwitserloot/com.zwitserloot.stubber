@@ -3,7 +3,6 @@ package com.zwitserloot.stubber.writer;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
@@ -40,31 +39,9 @@ public class StubJarWriter {
 		this.cl = cl;
 	}
 	
-	private static class Dir {
-		private final Map<String, Dir> entries = new HashMap<String, Dir>();
-	}
-	
 	public void write(Collection<String> types, String fileName) throws IOException {
-		Dir root = new Dir();
-		for (String type : types) {
-			String[] entries = type.split("/");
-			int pos = 0;
-			Dir cur = root;
-			while (pos < entries.length - 1) {
-				Dir child = cur.entries.get(entries[pos]);
-				if (child == null) {
-					child = new Dir();
-					cur.entries.put(entries[pos], child);
-				}
-				cur = child;
-				pos++;
-			}
-		}
-		
 		@Cleanup val fos = new FileOutputStream(fileName);
 		@Cleanup val out = new JarOutputStream(fos);
-		
-		createAllDirs(out, "", root);
 		
 		for (String type : types) {
 			@Cleanup val in = cl.getResourceAsStream(type + ".class");
@@ -116,15 +93,5 @@ public class StubJarWriter {
 			}
 		}, ClassReader.SKIP_CODE);
 		out.write(cw.toByteArray());
-	}
-	
-	private void createAllDirs(JarOutputStream out, String prefix, Dir dir) throws IOException {
-		for (val e : dir.entries.entrySet()) {
-			String dirname = e.getKey();
-			Dir subdirs = e.getValue();
-			String fullname = prefix + (prefix.isEmpty() ? "" : "/") + dirname;
-			out.putNextEntry(new ZipEntry(fullname));
-			createAllDirs(out, fullname, subdirs);
-		}
 	}
 }

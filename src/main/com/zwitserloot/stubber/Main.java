@@ -188,6 +188,7 @@ public class Main {
 	private static List<String> asClasspathEntry(String rt) {
 		val out = new ArrayList<String>();
 		if (rt.endsWith("_") || rt.endsWith("*")) {
+			if (rt.length() == 1) rt = "./" + rt;
 			File file = new File(rt.substring(0, rt.length() - 1));
 			if (file.isDirectory()) {
 				for (File f : file.listFiles()) {
