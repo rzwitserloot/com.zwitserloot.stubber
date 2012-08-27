@@ -21,7 +21,6 @@
 package com.zwitserloot.stubber;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.MalformedURLException;
@@ -191,12 +190,10 @@ public class Main {
 		if (rt.endsWith("*")) {
 			File file = new File(rt.substring(0, rt.length() - 1));
 			if (file.isDirectory()) {
-				for (File f : file.listFiles(new FilenameFilter() {
-					@Override public boolean accept(File dir, String name) {
-						return name.endsWith(".jar");
+				for (File f : file.listFiles()) {
+					if (f.getName().endsWith(".jar") && f.isFile()) {
+						out.add(f.getAbsolutePath());
 					}
-				})) {
-					out.add(f.getAbsolutePath());
 				}
 			}
 		} else {
