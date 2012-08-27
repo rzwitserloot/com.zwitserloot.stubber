@@ -1,6 +1,7 @@
 package com.zwitserloot.stubber.reader;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -164,6 +165,7 @@ public class DependencySweeper {
 	private static class State {
 		final String input;
 		final Collection<String> foundTypes;
+		final ArrayDeque<StringBuilder> typeStack = new ArrayDeque<StringBuilder>();
 		int pos;
 		
 		public void advancePast(char c) {
@@ -202,32 +204,43 @@ public class DependencySweeper {
 				return true;
 			}
 			
-			if (c == 'L') {
+			if (c == 'L' || (!typeStack.isEmpty() && c == '.')) {
+				StringBuilder sb;
+				if (c == 'L') {
+					sb = new StringBuilder();
+					typeStack.push(sb);
+				} else {
+					sb = typeStack.peek().append("$");
+				}
 				pos++;
-				int start = pos;
 				int end = pos;
 				
 				while (end < input.length()) {
 					char x = input.charAt(end);
 					if (x == ';') {
-						foundTypes.add(input.substring(start, end));
+						foundTypes.add(sb.toString());
+						typeStack.pop();
 						pos = end + 1;
 						return true;
 					}
 					if (x == '<') {
-						foundTypes.add(input.substring(start, end));
+						foundTypes.add(sb.toString());
 						pos = end + 1;
 						while (c() != '>' && parseType()) ;
 						if (c() == '>') pos++;
-						if (c() == ';') pos++;
+						if (c() == ';') {
+							pos++;
+							typeStack.pop();
+						}
 						return true;
 					}
+					sb.append(x);
 					end++;
 				}
 				return true;
 			}
 			
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Can't parse type sigs: " + input);
 		}
 	}
 	
