@@ -21,6 +21,7 @@
 package com.zwitserloot.stubber;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.MalformedURLException;
@@ -52,7 +53,7 @@ public class Main {
 		List<String> types = new ArrayList<String>();
 		
 		@Shorthand("c")
-		@Description("Add to the classpath without scouring them for public classes to use as API roots")
+		@Description("Add to the classpath without scouring them for public classes to use as API roots. Use '/a/b/c/*' to grab all jar files in /a/b/c.")
 		List<String> classpath = new ArrayList<String>();
 		
 		@Shorthand("i")
@@ -60,7 +61,7 @@ public class Main {
 		List<String> ignore = new ArrayList<String>();
 		
 		@Sequential
-		@Description("Include all public and protected class files in the provided directory or jar file as root points.")
+		@Description("Include all public and protected class files in the provided directory or jar file as root points. Use '/a/b/c/*' to grab all jar files in /a/b/c.")
 		@FullName("root")
 		List<String> roots = new ArrayList<String>();
 		
@@ -105,15 +106,19 @@ public class Main {
 		}
 		
 		val urls = new ArrayList<URL>();
-		for (String cp : args.classpath) urls.add(toURL(cp));
-		for (String rt : args.roots) urls.add(toURL(rt));
+		for (String cp : args.classpath) addClasspathEntry(urls, cp);
+		for (String rt : args.roots) addClasspathEntry(urls, rt);
 		
 		ClassLoader cl = new URLClassLoader(urls.toArray(new URL[0]));
 		val sweeper = new DependencySweeper(cl);
 		for (String ignore : args.ignore) sweeper.addExclusionPrefix(ignore);
 		val startingPoints = new HashSet<String>();
 		startingPoints.addAll(args.types);
-		for (String rt : args.roots) startingPoints.addAll(findAllTypesIn(rt));
+		for (String rt : args.roots) {
+			for (String f : asClasspathEntry(rt)) {
+				startingPoints.addAll(findAllTypesIn(f));
+			}
+		}
 		if (startingPoints.isEmpty()) {
 			System.err.println("No types specified and no types found in any roots either.");
 			System.exit(1);
@@ -174,6 +179,27 @@ public class Main {
 	
 	private static void printAll(Collection<String> typesToStub, PrintStream out) {
 		for (String type : typesToStub) out.println(type);
+	}
+	
+	private static List<String> asClasspathEntry(String rt) {
+		val out = new ArrayList<String>();
+		if (rt.endsWith("*")) {
+			File file = new File(rt.substring(0, rt.length() - 1));
+			if (file.isDirectory()) {
+				for (File f : file.listFiles(new FilenameFilter() {
+					@Override public boolean accept(File dir, String name) {
+						return name.endsWith(".jar");
+					}
+				})) {
+					out.add(f.getAbsolutePath());
+				}
+			}
+		}
+		return out;
+	}
+	
+	private static void addClasspathEntry(ArrayList<URL> urls, String cp) throws MalformedURLException {
+		for (String e : asClasspathEntry(cp)) urls.add(toURL(e));
 	}
 	
 	private static URL toURL(String path) throws MalformedURLException {
