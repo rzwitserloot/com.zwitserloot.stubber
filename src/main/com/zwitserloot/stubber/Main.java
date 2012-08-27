@@ -194,6 +194,8 @@ public class Main {
 					out.add(f.getAbsolutePath());
 				}
 			}
+		} else {
+			out.add(rt);
 		}
 		return out;
 	}
