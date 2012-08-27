@@ -55,9 +55,13 @@ public class Main {
 		@Description("Add to the classpath without scouring them for public classes to use as API roots. Use '/a/b/c/_' to grab all jar files in /a/b/c.")
 		List<String> classpath = new ArrayList<String>();
 		
-		@Shorthand("i")
+		@Shorthand("e")
 		@Description("class name prefix (example: \"java/\"; that one is added by default); any class with this prefix is not considered part of the API and is not scoured for further dependencies.")
-		List<String> ignore = new ArrayList<String>();
+		List<String> exclude = new ArrayList<String>();
+		
+		@Shorthand("i")
+		@Description("class name prefix (example: \"com/\"; any class NOT with this prefix is not considered part of the API and is not scoured for further dependencies.")
+		List<String> include = new ArrayList<String>();
 		
 		@Sequential
 		@Description("Include all public and protected class files in the provided directory or jar file as root points. Use '/a/b/c/_' to grab all jar files in /a/b/c.")
@@ -110,7 +114,8 @@ public class Main {
 		
 		ClassLoader cl = new URLClassLoader(urls.toArray(new URL[0]));
 		val sweeper = new DependencySweeper(cl);
-		for (String ignore : args.ignore) sweeper.addExclusionPrefix(ignore);
+		for (String exclude : args.exclude) sweeper.addExclusionPrefix(exclude);
+		for (String include : args.include) sweeper.addInclusionPrefix(include);
 		val startingPoints = new HashSet<String>();
 		startingPoints.addAll(args.types);
 		for (String rt : args.roots) {

@@ -40,6 +40,7 @@ public class DependencySweeper {
 	
 	private final ClassLoader cl;
 	private final List<String> exclusionPrefixes = new ArrayList<String>();
+	private final List<String> inclusionPrefixes = new ArrayList<String>();
 	
 	public DependencySweeper() {
 		this(ClassLoader.getSystemClassLoader());
@@ -60,6 +61,11 @@ public class DependencySweeper {
 		this.exclusionPrefixes.add(prefix);
 	}
 	
+	public void addInclusionPrefix(String prefix) {
+		if (prefix == null) throw new NullPointerException("prefix");
+		this.inclusionPrefixes.add(prefix);
+	}
+	
 	private Map<String, ClassFile> map = new HashMap<String, ClassFile>();
 	
 	private Map<String, ClassFile> round(Collection<String> types, boolean skipPrivateAndPackagePrivate) throws IOException {
@@ -68,6 +74,14 @@ public class DependencySweeper {
 		outer:
 		for (String t : types) {
 			for (String ex : exclusionPrefixes) if (t.startsWith(ex)) continue outer;
+			boolean foundInIncList = inclusionPrefixes.isEmpty();
+			for (String inc : inclusionPrefixes) {
+				if (t.startsWith(inc)) {
+					foundInIncList = true;
+					break;
+				}
+			}
+			if (!foundInIncList) continue outer;
 			@Cleanup val in = cl.getResourceAsStream(t + ".class");
 			if (in == null) {
 				System.out.printf("WARNING: Can't find class; it will not be stubbed and it will not be scanned for further dependencies to stub: %s\n", t);
