@@ -139,8 +139,13 @@ public class Main {
 		File path = new File(rt);
 		if (path.isDirectory()) return findAllTypesIn(path);
 		if (path.isFile()) {
-			@Cleanup JarFile jf = new JarFile(path);
-			return findAllTypesIn(jf);
+			try {
+				@Cleanup JarFile jf = new JarFile(path);
+				return findAllTypesIn(jf);
+			} catch (IOException e) {
+				System.err.println("Error in file: " + rt);
+				throw e;
+			}
 		}
 		
 		throw new IllegalArgumentException("Not found: " + rt);
